@@ -1195,7 +1195,7 @@ void Filler::addCreateEvent() {
 	const auto flag = PollData::Flags();
 	const auto replyTo = _request.currentReplyTo;
 	auto callback = [=] {
-		PeerMenuCreatePoll( // should call `PeerMenuCreateEvent`
+		PeerMenuCreateEvent( // should call `PeerMenuCreateEvent`
 			controller,
 			peer,
 			replyTo,
@@ -1691,8 +1691,52 @@ void PeerMenuCreatePoll(
 	controller->show(std::move(box), Ui::LayerOption::CloseOther);
 }
 
-// TODO. See above PeerMenuCreatePoll function for reference.
-void PeerMenuCreateEvent() {}
+// Uncomment once CreateEventBox is complete
+void PeerMenuCreateEvent(
+        not_null<Window::SessionController*> controller,
+        not_null<PeerData*> peer,
+        FullReplyTo replyTo,
+        PollData::Flags chosen,
+        PollData::Flags disabled,
+        Api::SendType sendType,
+        SendMenu::Type sendMenuType) {
+    if (peer->isChannel() && !peer->isMegagroup()) {
+        chosen &= ~PollData::Flag::PublicVotes;
+        disabled |= PollData::Flag::PublicVotes;
+    }
+    auto box = Box<CreateEventBox>(
+        controller,
+        chosen,
+        disabled,
+        sendType,
+        sendMenuType);
+    const auto weak = Ui::MakeWeak(box.data());
+    const auto lock = box->lifetime().make_state<bool>(false);
+    box->submitRequests(
+    ) | rpl::start_with_next([=](const CreateEventBox::Result &result) {
+        if (std::exchange(*lock, true)) {
+            return;
+        }
+        auto action = Api::SendAction(
+            peer->owner().history(peer),
+            result.options);
+        action.replyTo = replyTo;
+        const auto topicRootId = replyTo.topicRootId;
+        if (const auto local = action.history->localDraft(topicRootId)) {
+            action.clearDraft = local->textWithTags.text.isEmpty();
+        } else {
+            action.clearDraft = false;
+        }
+        const auto api = &peer->session().api();
+        api->polls().create(result.poll, action, crl::guard(weak, [=] {
+            weak->closeBox();
+        }), crl::guard(weak, [=] {
+            *lock = false;
+            weak->submitFailed(tr::lng_attach_failed(tr::now));
+        }));
+    }, box->lifetime());
+    controller->show(std::move(box), Ui::LayerOption::CloseOther);
+}
 
 void PeerMenuBlockUserBox(
 		not_null<Ui::GenericBox*> box,
