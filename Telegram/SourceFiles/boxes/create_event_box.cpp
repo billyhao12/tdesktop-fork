@@ -929,9 +929,10 @@ rpl::producer<CreateEventBox::Result> CreateEventBox::submitRequests() const {
 	return _submitRequests.events();
 }
 
-void CreateEventBox::setInnerFocus() {
-	_setInnerFocus();
-}
+// Used by poll options. Not sure if needed. Commented-out for now.
+//void CreateEventBox::setInnerFocus() {
+//	_setInnerFocus();
+//}
 
 void CreateEventBox::submitFailed(const QString& error) {
 	showToast(error);

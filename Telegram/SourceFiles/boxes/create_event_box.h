@@ -48,7 +48,8 @@ public:
 	[[nodiscard]] rpl::producer<Result> submitRequests() const;
 	void submitFailed(const QString& error);
 
-	void setInnerFocus() override;
+	// Used by poll options. Not sure if needed. Commented-out for now.
+	//void setInnerFocus() override;
 
 protected:
 	void prepare() override;
