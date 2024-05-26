@@ -1103,7 +1103,7 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
 	container->add(
 		object_ptr<Ui::FlatLabel>(
 			container,
-			tr::lng_polls_create_options(),
+			tr::lng_events_create_date(),
 			st::defaultSubsectionTitle),
 		st::createPollFieldTitlePadding);
 	const auto options = lifetime().make_state<Options>(

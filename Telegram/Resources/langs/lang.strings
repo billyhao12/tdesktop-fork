@@ -4585,6 +4585,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_polls_votes_collapse" = "Collapse";
 
 "lng_events_create_title" = "New event";
+"lng_events_create_date" = "Date";
+"lng_events_create_time" = "Time";
 
 "lng_outdated_title" = "PLEASE UPDATE YOUR OPERATING SYSTEM.";
 "lng_outdated_title_bits" = "PLEASE SWITCH TO 64 BIT OPERATING SYSTEM.";
