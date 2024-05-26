@@ -54,6 +54,102 @@ namespace {
 	constexpr auto kWarnSolutionLimit = 60;
 	constexpr auto kErrorLimit = 99;
 
+	[[nodiscard]] not_null<Ui::EmojiButton*> AddEmojiToggleToField(
+		not_null<Ui::InputField*> field,
+		not_null<Ui::BoxContent*> box,
+		not_null<Window::SessionController*> controller,
+		not_null<ChatHelpers::TabbedPanel*> emojiPanel,
+		QPoint shift) {
+		const auto emojiToggle = Ui::CreateChild<Ui::EmojiButton>(
+			field->parentWidget(),
+			st::defaultComposeFiles.emoji);
+		const auto fade = Ui::CreateChild<Ui::FadeAnimation>(
+			emojiToggle,
+			emojiToggle,
+			0.5);
+		{
+			const auto fadeTarget = Ui::CreateChild<Ui::RpWidget>(emojiToggle);
+			fadeTarget->resize(emojiToggle->size());
+			fadeTarget->paintRequest(
+			) | rpl::start_with_next([=](const QRect& rect) {
+				auto p = QPainter(fadeTarget);
+				if (fade->animating()) {
+					p.fillRect(fadeTarget->rect(), st::boxBg);
+				}
+				fade->paint(p);
+				}, fadeTarget->lifetime());
+			rpl::single(false) | rpl::then(
+				field->focusedChanges()
+			) | rpl::start_with_next([=](bool shown) {
+				if (shown) {
+					fade->fadeIn(st::universalDuration);
+				}
+				else {
+					fade->fadeOut(st::universalDuration);
+				}
+				}, emojiToggle->lifetime());
+			fade->fadeOut(1);
+			fade->finish();
+		}
+
+
+		const auto outer = box->getDelegate()->outerContainer();
+		const auto allow = [](not_null<DocumentData*>) { return true; };
+		InitMessageFieldHandlers(
+			controller,
+			field,
+			Window::GifPauseReason::Layer,
+			allow);
+		Ui::Emoji::SuggestionsController::Init(
+			outer,
+			field,
+			&controller->session(),
+			Ui::Emoji::SuggestionsController::Options{
+				.suggestCustomEmoji = true,
+				.allowCustomWithoutPremium = allow,
+			});
+		const auto updateEmojiPanelGeometry = [=] {
+			const auto parent = emojiPanel->parentWidget();
+			const auto global = emojiToggle->mapToGlobal({ 0, 0 });
+			const auto local = parent->mapFromGlobal(global);
+			const auto right = local.x() + emojiToggle->width() * 3;
+			const auto isDropDown = local.y() < parent->height() / 2;
+			emojiPanel->setDropDown(isDropDown);
+			if (isDropDown) {
+				emojiPanel->moveTopRight(
+					local.y() + emojiToggle->height(),
+					right);
+			}
+			else {
+				emojiPanel->moveBottomRight(local.y(), right);
+			}
+			};
+		rpl::combine(
+			box->sizeValue(),
+			field->geometryValue()
+		) | rpl::start_with_next([=](QSize outer, QRect inner) {
+			emojiToggle->moveToLeft(
+				rect::right(inner) + shift.x(),
+				inner.y() + shift.y());
+			emojiToggle->update();
+			}, emojiToggle->lifetime());
+
+		emojiToggle->installEventFilter(emojiPanel);
+		emojiToggle->addClickHandler([=] {
+			updateEmojiPanelGeometry();
+			emojiPanel->toggleAnimated();
+			});
+		const auto filterCallback = [=](not_null<QEvent*> event) {
+			if (event->type() == QEvent::Enter) {
+				updateEmojiPanelGeometry();
+			}
+			return base::EventFilterResult::Continue;
+			};
+		base::install_event_filter(emojiToggle, filterCallback);
+
+		return emojiToggle;
+	}
+
 	class Options {
 	public:
 		Options(
@@ -63,9 +159,13 @@ namespace {
 			ChatHelpers::TabbedPanel* emojiPanel,
 			bool chooseCorrectEnabled);
 
+		[[nodiscard]] bool hasOptions() const;
 		[[nodiscard]] bool isValid() const;
+		[[nodiscard]] bool hasCorrect() const;
 		[[nodiscard]] std::vector<PollAnswer> toPollAnswers() const;
 		void focusFirst();
+
+		void enableChooseCorrect(bool enabled);
 
 		[[nodiscard]] rpl::producer<int> usedCount() const;
 		[[nodiscard]] rpl::producer<not_null<QWidget*>> scrollToWidget() const;
@@ -86,8 +186,11 @@ namespace {
 			Option& operator=(const Option& other) = delete;
 
 			void toggleRemoveAlways(bool toggled);
+			void enableChooseCorrect(
+				std::shared_ptr<Ui::RadiobuttonGroup> group);
 
 			void show(anim::type animated);
+			void destroy(FnMut<void()> done);
 
 			[[nodiscard]] bool hasShadow() const;
 			void createShadow();
@@ -113,12 +216,14 @@ namespace {
 		private:
 			void createRemove();
 			void createWarning();
+			void toggleCorrectSpace(bool visible);
 			void updateFieldGeometry();
 
 			base::unique_qptr<Ui::SlideWrap<Ui::RpWidget>> _wrap;
 			not_null<Ui::RpWidget*> _content;
 			base::unique_qptr<Ui::FadeWrapScaled<Ui::Radiobutton>> _correct;
 			Ui::Animations::Simple _correctShown;
+			bool _hasCorrect = false;
 			Ui::InputField* _field = nullptr;
 			base::unique_qptr<Ui::PlainShadow> _shadow;
 			base::unique_qptr<Ui::CrossButton> _remove;
@@ -129,8 +234,13 @@ namespace {
 		[[nodiscard]] bool full() const;
 		[[nodiscard]] bool correctShadows() const;
 		void fixShadows();
+		void removeEmptyTail();
+		void addEmptyOption();
+		void checkLastOption();
 		void validateState();
 		void fixAfterErase();
+		void destroy(std::unique_ptr<Option> option);
+		void removeDestroyed(not_null<Option*> field);
 		int findField(not_null<Ui::InputField*> field) const;
 		[[nodiscard]] auto createChooseCorrectGroup()
 			-> std::shared_ptr<Ui::RadiobuttonGroup>;
@@ -144,7 +254,9 @@ namespace {
 		std::vector<std::unique_ptr<Option>> _list;
 		std::vector<std::unique_ptr<Option>> _destroyed;
 		rpl::variable<int> _usedCount = 0;
+		bool _hasOptions = false;
 		bool _isValid = false;
+		bool _hasCorrect = false;
 		rpl::event_stream<not_null<QWidget*>> _scrollToWidget;
 		rpl::event_stream<> _backspaceInFront;
 		rpl::event_stream<> _tabbed;
@@ -244,12 +356,17 @@ namespace {
 
 		_field->changes(
 		) | rpl::start_with_next([=] {
-			Ui::PostponeCall(crl::guard(_field, [=] {}));
+			Ui::PostponeCall(crl::guard(_field, [=] {
+				if (_hasCorrect) {
+					_correct->toggle(isGood(), anim::type::normal);
+				}
+				}));
 			}, _field->lifetime());
 
 		createShadow();
 		createRemove();
 		createWarning();
+		enableChooseCorrect(group);
 		_correctShown.stop();
 		if (_correct) {
 			_correct->finishAnimating();
@@ -384,7 +501,57 @@ namespace {
 		*_removeAlways = toggled;
 	}
 
+	void Options::Option::enableChooseCorrect(
+		std::shared_ptr<Ui::RadiobuttonGroup> group) {
+		if (!group) {
+			if (_correct) {
+				_hasCorrect = false;
+				_correct->hide(anim::type::normal);
+				toggleCorrectSpace(false);
+			}
+			return;
+		}
+		static auto Index = 0;
+		const auto button = Ui::CreateChild<Ui::FadeWrapScaled<Ui::Radiobutton>>(
+			_content.get(),
+			object_ptr<Ui::Radiobutton>(
+				_content.get(),
+				group,
+				++Index,
+				QString(),
+				st::defaultCheckbox));
+		button->entity()->resize(
+			button->entity()->height(),
+			button->entity()->height());
+		button->hide(anim::type::instant);
+		_content->sizeValue(
+		) | rpl::start_with_next([=](QSize size) {
+			const auto left = st::createPollFieldPadding.left();
+			button->moveToLeft(
+				left,
+				(size.height() - button->heightNoMargins()) / 2);
+			}, button->lifetime());
+		_correct.reset(button);
+		_hasCorrect = true;
+		if (isGood()) {
+			_correct->show(anim::type::normal);
+		}
+		else {
+			_correct->hide(anim::type::instant);
+		}
+		toggleCorrectSpace(true);
+	}
+
+	void Options::Option::toggleCorrectSpace(bool visible) {
+		_correctShown.start(
+			[=] { updateFieldGeometry(); },
+			visible ? 0. : 1.,
+			visible ? 1. : 0.,
+			st::fadeWrapDuration);
+	}
+
 	void Options::Option::updateFieldGeometry() {
+		const auto shown = _correctShown.value(_hasCorrect ? 1. : 0.);
 		const auto skip = st::defaultRadio.diameter
 			+ st::defaultCheckbox.textPosition.x();
 		const auto left = anim::interpolate(0, skip, shown);
@@ -435,14 +602,23 @@ namespace {
 			? createChooseCorrectGroup()
 			: nullptr)
 		, _position(_container->count()) {
+		checkLastOption();
 	}
 
 	bool Options::full() const {
 		return (_list.size() == kMaxOptionsCount);
 	}
 
+	bool Options::hasOptions() const {
+		return _hasOptions;
+	}
+
 	bool Options::isValid() const {
 		return _isValid;
+	}
+
+	bool Options::hasCorrect() const {
+		return _hasCorrect;
 	}
 
 	rpl::producer<int> Options::usedCount() const {
@@ -463,6 +639,18 @@ namespace {
 
 	void Options::Option::show(anim::type animated) {
 		_wrap->show(animated);
+	}
+
+	void Options::Option::destroy(FnMut<void()> done) {
+		if (anim::Disabled() || _wrap->isHidden()) {
+			Ui::PostponeCall(std::move(done));
+			return;
+		}
+		_wrap->hide(anim::type::normal);
+		base::call_delayed(
+			st::slideWrapDuration * 2,
+			_content.get(),
+			std::move(done));
 	}
 
 	std::vector<PollAnswer> Options::toPollAnswers() const {
@@ -494,6 +682,16 @@ namespace {
 		return result;
 	}
 
+	void Options::enableChooseCorrect(bool enabled) {
+		_chooseCorrectGroup = enabled
+			? createChooseCorrectGroup()
+			: nullptr;
+		for (auto& option : _list) {
+			option->enableChooseCorrect(_chooseCorrectGroup);
+		}
+		validateState();
+	}
+
 	bool Options::correctShadows() const {
 		// Last one should be without shadow.
 		const auto noShadow = ranges::find(
@@ -513,6 +711,38 @@ namespace {
 		_list.back()->destroyShadow();
 	}
 
+	void Options::removeEmptyTail() {
+		// Only one option at the end of options list can be empty.
+		// Remove all other trailing empty options.
+		// Only last empty and previous option have non-empty placeholders.
+		const auto focused = ranges::find_if(
+			_list,
+			&Option::hasFocus);
+		const auto end = _list.end();
+		const auto reversed = ranges::views::reverse(_list);
+		const auto emptyItem = ranges::find_if(
+			reversed,
+			ranges::not_fn(&Option::isEmpty)).base();
+		const auto focusLast = (focused > emptyItem) && (focused < end);
+		if (emptyItem == end) {
+			return;
+		}
+		if (focusLast) {
+			(*emptyItem)->setFocus();
+		}
+		for (auto i = emptyItem + 1; i != end; ++i) {
+			destroy(std::move(*i));
+		}
+		_list.erase(emptyItem + 1, end);
+		fixAfterErase();
+	}
+
+	void Options::destroy(std::unique_ptr<Option> option) {
+		const auto value = option.get();
+		option->destroy([=] { removeDestroyed(value); });
+		_destroyed.push_back(std::move(option));
+	}
+
 	void Options::fixAfterErase() {
 		Expects(!_list.empty());
 
@@ -526,8 +756,139 @@ namespace {
 		fixShadows();
 	}
 
-	void Options::validateState() { // can get rid of or change to validate input instead
-		_isValid = ranges::none_of(_list, &Option::isTooLong);
+	void Options::addEmptyOption() {
+		if (full()) {
+			return;
+		}
+		else if (!_list.empty() && _list.back()->isEmpty()) {
+			return;
+		}
+		if (_list.size() > 1) {
+			(*(_list.end() - 2))->removePlaceholder();
+			(*(_list.end() - 2))->toggleRemoveAlways(true);
+		}
+		_list.push_back(std::make_unique<Option>(
+			_box,
+			_container,
+			&_controller->session(),
+			_position + _list.size() + _destroyed.size(),
+			_chooseCorrectGroup));
+		const auto field = _list.back()->field();
+		if (const auto emojiPanel = _emojiPanel) {
+			const auto emojiToggle = AddEmojiToggleToField(
+				field,
+				_box,
+				_controller,
+				emojiPanel,
+				QPoint(
+					-st::createPollOptionFieldPremium.textMargins.right(),
+					st::createPollOptionEmojiPositionSkip));
+			emojiToggle->shownValue() | rpl::start_with_next([=](bool shown) {
+				if (!shown) {
+					return;
+				}
+				_emojiPanelLifetime.destroy();
+				emojiPanel->selector()->emojiChosen(
+				) | rpl::start_with_next([=](ChatHelpers::EmojiChosen data) {
+					if (field->hasFocus()) {
+						Ui::InsertEmojiAtCursor(field->textCursor(), data.emoji);
+					}
+					}, _emojiPanelLifetime);
+				emojiPanel->selector()->customEmojiChosen(
+				) | rpl::start_with_next([=](ChatHelpers::FileChosen data) {
+					if (field->hasFocus()) {
+						Data::InsertCustomEmoji(field, data.document);
+					}
+					}, _emojiPanelLifetime);
+				}, emojiToggle->lifetime());
+		}
+		field->submits(
+		) | rpl::start_with_next([=] {
+			const auto index = findField(field);
+			if (_list[index]->isGood() && index + 1 < _list.size()) {
+				_list[index + 1]->setFocus();
+			}
+			}, field->lifetime());
+		field->changes(
+		) | rpl::start_with_next([=] {
+			Ui::PostponeCall(crl::guard(field, [=] {
+				validateState();
+				}));
+			}, field->lifetime());
+		field->focusedChanges(
+		) | rpl::filter(rpl::mappers::_1) | rpl::start_with_next([=] {
+			_scrollToWidget.fire_copy(field);
+			}, field->lifetime());
+		field->tabbed(
+		) | rpl::start_with_next([=] {
+			const auto index = findField(field);
+			if (index + 1 < _list.size()) {
+				_list[index + 1]->setFocus();
+			}
+			else {
+				_tabbed.fire({});
+			}
+			}, field->lifetime());
+		base::install_event_filter(field, [=](not_null<QEvent*> event) {
+			if (event->type() != QEvent::KeyPress
+				|| !field->getLastText().isEmpty()) {
+				return base::EventFilterResult::Continue;
+			}
+			const auto key = static_cast<QKeyEvent*>(event.get())->key();
+			if (key != Qt::Key_Backspace) {
+				return base::EventFilterResult::Continue;
+			}
+
+			const auto index = findField(field);
+			if (index > 0) {
+				_list[index - 1]->setFocus();
+			}
+			else {
+				_backspaceInFront.fire({});
+			}
+			return base::EventFilterResult::Cancel;
+			});
+
+		_list.back()->removeClicks(
+		) | rpl::start_with_next([=] {
+			Ui::PostponeCall(crl::guard(field, [=] {
+				Expects(!_list.empty());
+
+				const auto item = begin(_list) + findField(field);
+				if (item == _list.end() - 1) {
+					(*item)->clearValue();
+					return;
+				}
+				if ((*item)->hasFocus()) {
+					(*(item + 1))->setFocus();
+				}
+				destroy(std::move(*item));
+				_list.erase(item);
+				fixAfterErase();
+				validateState();
+				}));
+			}, field->lifetime());
+
+		_list.back()->show((_list.size() == 1)
+			? anim::type::instant
+			: anim::type::normal);
+		fixShadows();
+	}
+
+	void Options::removeDestroyed(not_null<Option*> option) {
+		const auto i = ranges::find(
+			_destroyed,
+			option.get(),
+			&std::unique_ptr<Option>::get);
+		Assert(i != end(_destroyed));
+		_destroyed.erase(i);
+	}
+
+	void Options::validateState() {
+		checkLastOption();
+		_hasOptions = (ranges::count_if(_list, &Option::isGood) > 1);
+		_isValid = _hasOptions && ranges::none_of(_list, &Option::isTooLong);
+		_hasCorrect = ranges::any_of(_list, &Option::isCorrect);
 
 		const auto lastEmpty = !_list.empty() && _list.back()->isEmpty();
 		_usedCount = _list.size() - (lastEmpty ? 1 : 0);
@@ -542,6 +903,12 @@ namespace {
 		Ensures(result >= 0 && result < _list.size());
 		return result;
 	}
+
+	void Options::checkLastOption() {
+		removeEmptyTail();
+		addEmptyOption();
+	}
+
 } // namespace
 
 CreateEventBox::CreateEventBox(
@@ -558,19 +925,19 @@ CreateEventBox::CreateEventBox(
 	, _sendMenuType(sendMenuType) {
 }
 
-rpl::producer<CreatePollBox::Result> CreatePollBox::submitRequests() const {
+rpl::producer<CreateEventBox::Result> CreateEventBox::submitRequests() const {
 	return _submitRequests.events();
 }
 
-void CreatePollBox::setInnerFocus() {
+void CreateEventBox::setInnerFocus() {
 	_setInnerFocus();
 }
 
-void CreatePollBox::submitFailed(const QString& error) {
+void CreateEventBox::submitFailed(const QString& error) {
 	showToast(error);
 }
 
-not_null<Ui::InputField*> CreatePollBox::setupQuestion(
+not_null<Ui::InputField*> CreateEventBox::setupQuestion(
 	not_null<Ui::VerticalLayout*> container) {
 	using namespace Settings;
 
@@ -657,7 +1024,7 @@ not_null<Ui::InputField*> CreatePollBox::setupQuestion(
 	return question;
 }
 
-not_null<Ui::InputField*> CreatePollBox::setupSolution(
+not_null<Ui::InputField*> CreateEventBox::setupSolution(
 	not_null<Ui::VerticalLayout*> container,
 	rpl::producer<bool> shown) {
 	using namespace Settings;
@@ -721,7 +1088,7 @@ not_null<Ui::InputField*> CreatePollBox::setupSolution(
 	return solution;
 }
 
-object_ptr<Ui::RpWidget> CreatePollBox::setupContent() {
+object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
 	using namespace Settings;
 
 	const auto id = base::RandomValue<uint64>();
@@ -744,6 +1111,7 @@ object_ptr<Ui::RpWidget> CreatePollBox::setupContent() {
 		container,
 		_controller,
 		_emojiPanel ? _emojiPanel.get() : nullptr,
+		(_chosen & PollData::Flag::Quiz));
 	auto limit = options->usedCount() | rpl::after_next([=](int count) {
 		setCloseByEscape(!count);
 		setCloseByOutsideClick(!count);
@@ -841,6 +1209,7 @@ object_ptr<Ui::RpWidget> CreatePollBox::setupContent() {
 					multiple->setDisabled(checked
 						|| (_disabled & PollData::Flag::MultiChoice));
 				}
+				options->enableChooseCorrect(checked);
 				}, quiz->lifetime());
 
 			const auto isValidQuestion = [=] {
@@ -897,6 +1266,12 @@ object_ptr<Ui::RpWidget> CreatePollBox::setupContent() {
 				}
 				else {
 					*error &= ~(Error::Options | Error::Other);
+				}
+				if (quiz->checked() && !options->hasCorrect()) {
+					*error |= Error::Correct;
+				}
+				else {
+					*error &= ~Error::Correct;
 				}
 				if (quiz->checked()
 					&& solution->getLastText().trimmed().size() > kSolutionLimit) {
@@ -978,8 +1353,8 @@ object_ptr<Ui::RpWidget> CreatePollBox::setupContent() {
 			return result;
 }
 
-void CreatePollBox::prepare() {
-	setTitle(tr::lng_polls_create_title());
+void CreateEventBox::prepare() {
+	setTitle(tr::lng_events_create_title());
 
 	const auto inner = setInnerWidget(setupContent());
 

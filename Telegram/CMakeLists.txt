@@ -255,6 +255,8 @@ PRIVATE
     boxes/connection_box.h
     boxes/create_poll_box.cpp
     boxes/create_poll_box.h
+    boxes/create_event_box.cpp
+    boxes/create_event_box.h
     boxes/delete_messages_box.cpp
     boxes/delete_messages_box.h
     boxes/dictionaries_manager.cpp
