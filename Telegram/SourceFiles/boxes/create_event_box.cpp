@@ -1355,7 +1355,7 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
 }
 
 void CreateEventBox::prepare() {
-	setTitle(tr::lng_polls_create_title());
+	setTitle(tr::lng_events_create_title());
 
 	const auto inner = setInnerWidget(setupContent());
 
