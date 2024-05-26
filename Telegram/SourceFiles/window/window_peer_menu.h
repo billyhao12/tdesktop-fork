@@ -92,6 +92,14 @@ void PeerMenuCreatePoll(
 	PollData::Flags disabled = PollData::Flags(),
 	Api::SendType sendType = Api::SendType::Normal,
 	SendMenu::Type sendMenuType = SendMenu::Type::Scheduled);
+void PeerMenuCreateEvent(
+	not_null<Window::SessionController*> controller,
+	not_null<PeerData*> peer,
+	FullReplyTo replyTo,
+	PollData::Flags chosen,
+	PollData::Flags disabled,
+	Api::SendType sendType,
+	SendMenu::Type sendMenuType);
 void PeerMenuDeleteTopicWithConfirmation(
 	not_null<Window::SessionNavigation*> navigation,
 	not_null<Data::ForumTopic*> topic);

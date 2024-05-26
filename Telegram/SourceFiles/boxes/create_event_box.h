@@ -1,4 +1,3 @@
-#pragma once
 /*
 This file is part of Telegram Desktop,
 the official desktop application for the Telegram messaging service.
