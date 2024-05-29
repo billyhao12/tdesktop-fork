@@ -1101,9 +1101,9 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
 	const auto question = setupQuestion(container);
 
 	Ui::AddSkip(container);
-	Ui::AddSubsectionTitle(container, tr::lng_events_create_date());
 
-	// Input box for date
+	// Heading and input box for date
+	Ui::AddSubsectionTitle(container, tr::lng_events_create_date());
 	container->add(
 		object_ptr<Ui::InputField>(
 			container,
@@ -1114,9 +1114,9 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
 	);
 
 	Ui::AddSkip(container);
-	Ui::AddSubsectionTitle(container, tr::lng_events_create_time());
 
-	// Input box for time
+	// Heading and input box for time
+	Ui::AddSubsectionTitle(container, tr::lng_events_create_time());
 	container->add(
 		object_ptr<Ui::InputField>(
 			container,
