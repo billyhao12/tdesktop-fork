@@ -48,8 +48,6 @@ public:
 	[[nodiscard]] rpl::producer<Result> submitRequests() const;
 	void submitFailed(const QString& error);
 
-	void setInnerFocus() override;
-
 protected:
 	void prepare() override;
 
