@@ -1108,7 +1108,7 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
 			st::defaultSubsectionTitle),
 		st::createPollFieldTitlePadding);
 
-	addButton(tr::lng_cancel(), [=] { closeBox(); });
+	addButton(tr::lng_events_create_button(), [=] { closeBox(); });
 	addButton(tr::lng_cancel(), [=] { closeBox(); });
 
 	return result;
