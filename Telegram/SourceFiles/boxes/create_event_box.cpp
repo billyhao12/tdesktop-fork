@@ -1100,10 +1100,31 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
 
 	const auto question = setupQuestion(container);
 
-	Ui::AddDivider(container);
 	Ui::AddSkip(container);
-
 	Ui::AddSubsectionTitle(container, tr::lng_events_create_date());
+
+	// Input box for date
+	container->add(
+		object_ptr<Ui::InputField>(
+			container,
+			st::createPollField,
+			Ui::InputField::Mode::SingleLine,
+			tr::lng_events_create_date_placeholder()),
+		st::createPollFieldPadding
+	);
+
+	Ui::AddSkip(container);
+	Ui::AddSubsectionTitle(container, tr::lng_events_create_time());
+
+	// Input box for time
+	container->add(
+		object_ptr<Ui::InputField>(
+			container,
+			st::createPollField,
+			Ui::InputField::Mode::SingleLine,
+			tr::lng_events_create_time_placeholder()),
+		st::createPollFieldPadding
+	);
 
 	addButton(tr::lng_events_create_button(), [=] { closeBox(); });
 	addButton(tr::lng_cancel(), [=] { closeBox(); });
