@@ -1099,14 +1099,11 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
 	const auto container = result.data();
 
 	const auto question = setupQuestion(container);
+
 	Ui::AddDivider(container);
 	Ui::AddSkip(container);
-	container->add(
-		object_ptr<Ui::FlatLabel>(
-			container,
-			tr::lng_events_create_date(),
-			st::defaultSubsectionTitle),
-		st::createPollFieldTitlePadding);
+
+	Ui::AddSubsectionTitle(container, tr::lng_events_create_date());
 
 	addButton(tr::lng_events_create_button(), [=] { closeBox(); });
 	addButton(tr::lng_cancel(), [=] { closeBox(); });
