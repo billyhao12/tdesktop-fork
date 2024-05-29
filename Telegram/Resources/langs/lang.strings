@@ -4584,6 +4584,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_polls_show_more#other" = "Show more ({count})";
 "lng_polls_votes_collapse" = "Collapse";
 
+"lng_events_create_title" = "New event";
+"lng_events_create_date" = "Date";
+"lng_events_create_date_placeholder" = "Enter a date";
+"lng_events_create_time" = "Time";
+"lng_events_create_time_placeholder" = "Enter a time";
+"lng_events_create_button" = "Create";
+
 "lng_outdated_title" = "PLEASE UPDATE YOUR OPERATING SYSTEM.";
 "lng_outdated_title_bits" = "PLEASE SWITCH TO 64 BIT OPERATING SYSTEM.";
 "lng_outdated_soon" = "Otherwise, Telegram Desktop will stop updating on {date}.";

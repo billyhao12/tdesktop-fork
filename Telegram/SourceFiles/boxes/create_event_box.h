@@ -1,4 +1,3 @@
-#pragma once
 /*
 This file is part of Telegram Desktop,
 the official desktop application for the Telegram messaging service.
@@ -48,8 +47,6 @@ public:
 
 	[[nodiscard]] rpl::producer<Result> submitRequests() const;
 	void submitFailed(const QString& error);
-
-	void setInnerFocus() override;
 
 protected:
 	void prepare() override;
