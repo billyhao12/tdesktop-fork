@@ -1121,6 +1121,19 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
 		st::createPollFieldPadding
 	);
 
+	Ui::AddSkip(container);
+
+	// Heading and input box for event description
+	Ui::AddSubsectionTitle(container, tr::lng_events_create_description());
+	container->add(
+		object_ptr<Ui::InputField>(
+			container,
+			st::createPollField,
+			Ui::InputField::Mode::MultiLine,
+			tr::lng_events_create_description_placeholder()),
+		st::createPollFieldPadding
+	);
+
 	addButton(tr::lng_events_create_button(), [=] { closeBox(); });
 	addButton(tr::lng_cancel(), [=] { closeBox(); });
 
