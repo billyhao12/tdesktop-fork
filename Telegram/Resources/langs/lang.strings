@@ -4585,6 +4585,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_polls_votes_collapse" = "Collapse";
 
 "lng_events_create_title" = "New event";
+"lng_events_create_name" = "Event Name";
+"lng_events_create_name_placeholder" = "Enter an event name";
 "lng_events_create_date" = "Date";
 "lng_events_create_date_placeholder" = "Enter a date";
 "lng_events_create_time" = "Time";

@@ -1093,7 +1093,20 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
 	auto result = object_ptr<Ui::VerticalLayout>(this);
 	const auto container = result.data();
 
-	const auto question = setupQuestion(container);
+	//const auto question = setupQuestion(container);
+    
+    Ui::AddSkip(container);
+
+    // Heading and input box for event name
+    Ui::AddSubsectionTitle(container, tr::lng_events_create_name());
+    container->add(
+        object_ptr<Ui::InputField>(
+            container,
+            st::createPollField,
+            Ui::InputField::Mode::SingleLine,
+            tr::lng_events_create_name_placeholder()),
+        st::createPollFieldPadding
+    );
 
 	Ui::AddSkip(container);
 
