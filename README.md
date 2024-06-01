@@ -67,6 +67,7 @@ Version **1.8.15** was the last that supports older systems
 
 ## Build instructions
 
+* [User Guide][Telegram-Desktop-User-Guide]
 * Windows [(32-bit)][win32] [(64-bit)][win64]
 * [macOS][mac]
 * [GNU/Linux using Docker][linux]
@@ -77,6 +78,7 @@ Version **1.8.15** was the last that supports older systems
 [telegram_api]: https://core.telegram.org
 [telegram_proto]: https://core.telegram.org/mtproto
 [license]: LICENSE
+[Telegram-Desktop-User-Guide]: docs/Telegram-Desktop-User-Guide.pdf
 [win32]: docs/building-win.md
 [win64]: docs/building-win-x64.md
 [mac]: docs/building-mac.md
