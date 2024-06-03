@@ -42,6 +42,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_chat_helpers.h" // defaultComposeFiles.
 #include "styles/style_layers.h"
 #include "styles/style_settings.h"
+#include <iostream>
 
 namespace {
 
@@ -1099,7 +1100,7 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
 
     // Heading and input box for event name
     Ui::AddSubsectionTitle(container, tr::lng_events_create_name());
-    container->add(
+    auto event_name = container->add(
         object_ptr<Ui::InputField>(
             container,
             st::createPollField,
@@ -1112,7 +1113,7 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
 
 	// Heading and input box for date
 	Ui::AddSubsectionTitle(container, tr::lng_events_create_date());
-	container->add(
+	auto event_date = container->add(
 		object_ptr<Ui::InputField>(
 			container,
 			st::createPollField,
@@ -1125,7 +1126,7 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
 
 	// Heading and input box for time
 	Ui::AddSubsectionTitle(container, tr::lng_events_create_time());
-	container->add(
+	auto event_time = container->add(
 		object_ptr<Ui::InputField>(
 			container,
 			st::createPollField,
@@ -1138,7 +1139,7 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
 
 	// Heading and input box for event description
 	Ui::AddSubsectionTitle(container, tr::lng_events_create_description());
-	container->add(
+	auto event_description = container->add(
 		object_ptr<Ui::InputField>(
 			container,
 			st::createPollField,
@@ -1147,7 +1148,78 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
 		st::createPollFieldPadding
 	);
 
-	addButton(tr::lng_events_create_button(), [=] { closeBox(); });
+    const auto collectResult = [=] {
+        using Flag = PollData::Flag;
+        auto result = PollData(&_controller->session().data(), id);
+
+        // setup poll "question" field contents
+        result.question.text = event_name->getTextWithTags().text;
+        result.question.text += ": "; // Add a space separator
+        result.question.text += event_description->getTextWithTags().text;
+
+        result.question.entities = TextUtilities::ConvertTextTagsToEntities(
+                event_name->getTextWithTags().tags);
+        TextUtilities::Trim(result.question);
+
+        // setup poll "answers" field contents
+        // Initialize answers with 2 entries: 'Interested' and 'Not interested'
+        std::vector<PollAnswer> answers;
+        answers.push_back({ TextWithEntities::Simple("Interested"), QByteArray(), 0, false, false });
+        answers.push_back({ TextWithEntities::Simple("Not interested"), QByteArray(), 0, false, false });
+
+        result.answers = answers;
+
+
+        const auto solutionWithTags = TextWithTags();
+        result.solution = TextWithEntities{
+                solutionWithTags.text,
+                TextUtilities::ConvertTextTagsToEntities(solutionWithTags.tags)
+        };
+
+
+        std::cout << "Question: " << result.question.text.toStdString() << std::endl;
+        for (const auto& answer : result.answers) {
+            std::cout << "Option: " << answer.text.text.toStdString() << std::endl;
+        }
+
+        result.setFlags(Flag(0));
+        return result;
+    };
+
+    const auto showError = [show = uiShow()](
+            tr::phrase<> text) {
+        show->showToast(text(tr::now));
+    };
+    const auto send = [=](Api::SendOptions sendOptions) {
+            _submitRequests.fire({ collectResult(), sendOptions });
+    };
+    const auto sendSilent = [=] {
+        send({ .silent = true });
+    };
+    const auto sendScheduled = [=] {
+        _controller->show(
+                HistoryView::PrepareScheduleBox(
+                        this,
+                        SendMenu::Type::Scheduled,
+                        send));
+    };
+    const auto sendWhenOnline = [=] {
+        send(Api::DefaultSendWhenOnlineOptions());
+    };
+
+    const auto submit = addButton(tr::lng_events_create_button(),[=] { send({}); });
+    const auto sendMenuType = [=] {
+        return (*error)
+               ? SendMenu::Type::Disabled
+               : _sendMenuType;
+    };
+    SendMenu::SetupMenuAndShortcuts(
+            submit.data(),
+            sendMenuType,
+            sendSilent,
+            sendScheduled,
+            sendWhenOnline);
+
 	addButton(tr::lng_cancel(), [=] { closeBox(); });
 
 	return result;
