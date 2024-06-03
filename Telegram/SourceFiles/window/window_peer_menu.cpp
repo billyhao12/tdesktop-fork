@@ -1733,7 +1733,7 @@ void PeerMenuCreateEvent(
             weak->closeBox();
         }), crl::guard(weak, [=] {
             *lock = false;
-            weak->submitFailed(tr::lng_attach_failed(tr::now));
+            weak->submitFailed(tr::lng_event_submit_failed(tr::now));
         }));
     }, box->lifetime());
     controller->show(std::move(box), Ui::LayerOption::CloseOther);
