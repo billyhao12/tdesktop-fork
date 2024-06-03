@@ -930,6 +930,11 @@ rpl::producer<CreateEventBox::Result> CreateEventBox::submitRequests() const {
 	return _submitRequests.events();
 }
 
+void CreateEventBox::setInnerFocus() {
+    _setInnerFocus();
+}
+
+
 void CreateEventBox::submitFailed(const QString& error) {
 	showToast(error);
 }
@@ -1147,6 +1152,10 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
 			tr::lng_events_create_description_placeholder()),
 		st::createPollFieldPadding
 	);
+
+    _setInnerFocus = [=] {
+        event_name->setFocusFast();
+    };
 
     const auto collectResult = [=] {
         using Flag = PollData::Flag;
