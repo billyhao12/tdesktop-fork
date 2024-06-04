@@ -929,6 +929,11 @@ rpl::producer<CreateEventBox::Result> CreateEventBox::submitRequests() const {
 	return _submitRequests.events();
 }
 
+void CreateEventBox::setInnerFocus() {
+    _setInnerFocus();
+}
+
+
 void CreateEventBox::submitFailed(const QString& error) {
 	showToast(error);
 }
@@ -1099,7 +1104,7 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
 
     // Heading and input box for event name
     Ui::AddSubsectionTitle(container, tr::lng_events_create_name());
-    container->add(
+    auto event_name = container->add(
         object_ptr<Ui::InputField>(
             container,
             st::createPollField,
@@ -1112,7 +1117,7 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
 
 	// Heading and input box for date
 	Ui::AddSubsectionTitle(container, tr::lng_events_create_date());
-	container->add(
+	auto event_date = container->add(
 		object_ptr<Ui::InputField>(
 			container,
 			st::createPollField,
@@ -1125,7 +1130,7 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
 
 	// Heading and input box for time
 	Ui::AddSubsectionTitle(container, tr::lng_events_create_time());
-	container->add(
+	auto event_time = container->add(
 		object_ptr<Ui::InputField>(
 			container,
 			st::createPollField,
@@ -1138,7 +1143,7 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
 
 	// Heading and input box for event description
 	Ui::AddSubsectionTitle(container, tr::lng_events_create_description());
-	container->add(
+	auto event_description = container->add(
 		object_ptr<Ui::InputField>(
 			container,
 			st::createPollField,
@@ -1147,7 +1152,96 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
 		st::createPollFieldPadding
 	);
 
-	addButton(tr::lng_events_create_button(), [=] { closeBox(); });
+    _setInnerFocus = [=] {
+        event_name->setFocusFast();
+    };
+
+    const auto createPollAnswers = [=] {
+        std::vector<TextWithEntities> fixed_answers;
+        fixed_answers.push_back(TextWithEntities{ "Yes", EntitiesInText() });
+        fixed_answers.push_back(TextWithEntities{ "No", EntitiesInText() });
+
+        auto poll_ans_vec_final = std::vector<PollAnswer>();
+        poll_ans_vec_final.reserve(fixed_answers.size());
+
+        auto counter = int(0);
+        for (const auto &ans : fixed_answers) {
+            auto poll_ans = PollAnswer{ans, QByteArray(1, ('0' + counter))};
+            TextUtilities::Trim(poll_ans.text);
+            poll_ans.correct = false;
+            poll_ans_vec_final.push_back(poll_ans);
+            ++counter;
+        }
+
+        return poll_ans_vec_final;
+    };
+
+    const auto collectResult = [=] {
+        using Flag = PollData::Flag;
+        auto result = PollData(&_controller->session().data(), id);
+
+        // setup poll "question" field contents
+        result.question.text = event_name->getTextWithTags().text;
+        result.question.text += ": "; // Add a space separator
+        result.question.text += event_description->getTextWithTags().text;
+        result.question.text += "\n";
+        result.question.text += "Date: " + event_date->getTextWithTags().text;
+        result.question.text += "\n";
+        result.question.text += "Time: " + event_time->getTextWithTags().text;
+
+        result.question.entities = TextUtilities::ConvertTextTagsToEntities(
+                event_name->getTextWithTags().tags);
+        TextUtilities::Trim(result.question);
+
+        // setup poll "answers" field contents
+        // Initialize answers with 2 entries: 'Interested' and 'Not interested'
+        result.answers = createPollAnswers();
+
+
+        const auto solutionWithTags = TextWithTags();
+        result.solution = TextWithEntities{
+                solutionWithTags.text,
+                TextUtilities::ConvertTextTagsToEntities(solutionWithTags.tags)
+        };
+
+        result.setFlags(Flag(0));
+        return result;
+    };
+
+    const auto showError = [show = uiShow()](
+            tr::phrase<> text) {
+        show->showToast(text(tr::now));
+    };
+    const auto send = [=](Api::SendOptions sendOptions) {
+            _submitRequests.fire({ collectResult(), sendOptions });
+    };
+    const auto sendSilent = [=] {
+        send({ .silent = true });
+    };
+    const auto sendScheduled = [=] {
+        _controller->show(
+                HistoryView::PrepareScheduleBox(
+                        this,
+                        SendMenu::Type::Scheduled,
+                        send));
+    };
+    const auto sendWhenOnline = [=] {
+        send(Api::DefaultSendWhenOnlineOptions());
+    };
+
+    const auto submit = addButton(tr::lng_events_create_button(),[=] { sendScheduled(); });
+    const auto sendMenuType = [=] {
+        return (*error)
+               ? SendMenu::Type::Disabled
+               : _sendMenuType;
+    };
+    SendMenu::SetupMenuAndShortcuts(
+            submit.data(),
+            sendMenuType,
+            sendSilent,
+            sendScheduled,
+            sendWhenOnline);
+
 	addButton(tr::lng_cancel(), [=] { closeBox(); });
 
 	return result;

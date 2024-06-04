@@ -1718,6 +1718,7 @@ void PeerMenuCreateEvent(
         if (std::exchange(*lock, true)) {
             return;
         }
+
         auto action = Api::SendAction(
             peer->owner().history(peer),
             result.options);
@@ -1733,7 +1734,7 @@ void PeerMenuCreateEvent(
             weak->closeBox();
         }), crl::guard(weak, [=] {
             *lock = false;
-            weak->submitFailed(tr::lng_attach_failed(tr::now));
+            weak->submitFailed(tr::lng_event_submit_failed(tr::now));
         }));
     }, box->lifetime());
     controller->show(std::move(box), Ui::LayerOption::CloseOther);
