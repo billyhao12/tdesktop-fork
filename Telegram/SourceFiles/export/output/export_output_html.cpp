@@ -1851,7 +1851,7 @@ QByteArray HtmlWriter::Wrap::pushPoll(const Data::Poll &data) {
 	if (data.closed) {
 		result.append(SerializeString("Final results"));
 	} else {
-		result.append(SerializeString("Anonymous poll"));
+		result.append(SerializeString("RSVP"));
 	}
 	result.append(popTag());
 	const auto votes = [](int count) {
