@@ -42,7 +42,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_chat_helpers.h" // defaultComposeFiles.
 #include "styles/style_layers.h"
 #include "styles/style_settings.h"
-#include <iostream>
 
 namespace {
 
@@ -1200,12 +1199,6 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
                 solutionWithTags.text,
                 TextUtilities::ConvertTextTagsToEntities(solutionWithTags.tags)
         };
-
-
-        std::cout << "Question: " << result.question.text.toStdString() << std::endl;
-        for (const auto& answer : result.answers) {
-            std::cout << "Option: " << answer.text.text.toStdString() << std::endl;
-        }
 
         result.setFlags(Flag(0));
         return result;

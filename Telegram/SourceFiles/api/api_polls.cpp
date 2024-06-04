@@ -20,8 +20,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_item.h"
 #include "history/history_item_helpers.h" // ShouldSendSilent
 #include "main/main_session.h"
-#include <iostream>
-#include <QDebug>
 
 namespace Api {
 namespace {
@@ -105,20 +103,11 @@ void Polls::create(
 				: Data::HistoryUpdate::Flag::MessageSent));
 		done();
 	}, [=](const MTP::Error &error, const MTP::Response &response) {
-                qDebug() << "Error Code:" << error.code();
-                qDebug() << "Error Type:" << error.type();
-                qDebug() << "Error Description:" << error.description();
-
-                qDebug() << "Response Reply:" << response.reply;
-                qDebug() << "Response Outer Msg ID:" << response.outerMsgId;
-                qDebug() << "Response Request ID:" << response.requestId;
-
 		if (clearCloudDraft) {
 			history->finishSavingCloudDraft(
 				topicRootId,
 				UnixtimeFromMsgId(response.outerMsgId));
 		}
-        std::cout<<"API poll: poll creation failed";
 		fail();
 	});
 }
