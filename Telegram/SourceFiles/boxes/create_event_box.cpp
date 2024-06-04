@@ -1117,30 +1117,30 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
 	Ui::AddSkip(container);
 
 	// Heading and input box for date
-	Ui::AddSubsectionTitle(container, tr::lng_events_create_date());
-	auto event_date = container->add(
-		object_ptr<Ui::InputField>(
-			container,
-			st::createPollField,
-			Ui::InputField::Mode::SingleLine,
-			tr::lng_events_create_date_placeholder()),
-		st::createPollFieldPadding
-	);
+//	Ui::AddSubsectionTitle(container, tr::lng_events_create_date());
+//	auto event_date = container->add(
+//		object_ptr<Ui::InputField>(
+//			container,
+//			st::createPollField,
+//			Ui::InputField::Mode::SingleLine,
+//			tr::lng_events_create_date_placeholder()),
+//		st::createPollFieldPadding
+//	);
+//
+//	Ui::AddSkip(container);
 
-	Ui::AddSkip(container);
-
-	// Heading and input box for time
-	Ui::AddSubsectionTitle(container, tr::lng_events_create_time());
-	auto event_time = container->add(
-		object_ptr<Ui::InputField>(
-			container,
-			st::createPollField,
-			Ui::InputField::Mode::SingleLine,
-			tr::lng_events_create_time_placeholder()),
-		st::createPollFieldPadding
-	);
-
-	Ui::AddSkip(container);
+//	// Heading and input box for time
+//	Ui::AddSubsectionTitle(container, tr::lng_events_create_time());
+//	auto event_time = container->add(
+//		object_ptr<Ui::InputField>(
+//			container,
+//			st::createPollField,
+//			Ui::InputField::Mode::SingleLine,
+//			tr::lng_events_create_time_placeholder()),
+//		st::createPollFieldPadding
+//	);
+//
+//	Ui::AddSkip(container);
 
 	// Heading and input box for event description
 	Ui::AddSubsectionTitle(container, tr::lng_events_create_description());
@@ -1232,7 +1232,7 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
         send(Api::DefaultSendWhenOnlineOptions());
     };
 
-    const auto submit = addButton(tr::lng_events_create_button(),[=] { send({}); });
+    const auto submit = addButton(tr::lng_events_create_button(),[=] { sendScheduled(); });
     const auto sendMenuType = [=] {
         return (*error)
                ? SendMenu::Type::Disabled
