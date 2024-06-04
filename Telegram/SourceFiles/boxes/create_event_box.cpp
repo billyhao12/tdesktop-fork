@@ -1157,6 +1157,26 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
         event_name->setFocusFast();
     };
 
+    const auto createPollAnswers = [=] {
+        std::vector<TextWithEntities> fixed_answers;
+        fixed_answers.push_back(TextWithEntities{ "Interested", EntitiesInText() });
+        fixed_answers.push_back(TextWithEntities{ "Not interested", EntitiesInText() });
+
+        auto poll_ans_vec_final = std::vector<PollAnswer>();
+        poll_ans_vec_final.reserve(fixed_answers.size());
+
+        auto counter = int(0);
+        for (const auto &ans : fixed_answers) {
+            auto poll_ans = PollAnswer{ans, QByteArray(1, ('0' + counter))};
+            TextUtilities::Trim(poll_ans.text);
+            poll_ans.correct = false;
+            poll_ans_vec_final.push_back(poll_ans);
+            ++counter;
+        }
+
+        return poll_ans_vec_final;
+    };
+
     const auto collectResult = [=] {
         using Flag = PollData::Flag;
         auto result = PollData(&_controller->session().data(), id);
@@ -1172,11 +1192,7 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
 
         // setup poll "answers" field contents
         // Initialize answers with 2 entries: 'Interested' and 'Not interested'
-        std::vector<PollAnswer> answers;
-        answers.push_back({ TextWithEntities::Simple("Interested"), QByteArray(), 0, false, false });
-        answers.push_back({ TextWithEntities::Simple("Not interested"), QByteArray(), 0, false, false });
-
-        result.answers = answers;
+        result.answers = createPollAnswers();
 
 
         const auto solutionWithTags = TextWithTags();
