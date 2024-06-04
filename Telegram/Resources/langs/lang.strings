@@ -4540,7 +4540,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_launch_dont_ask" = "Remember for this file type";
 "lng_launch_dont_ask_settings" = "You can later edit trusted file types in Settings > Privacy and Security > File open confirmations.";
 
-"lng_polls_anonymous" = "Anonymous Poll";
+"lng_polls_anonymous" = "RSVP";
 "lng_polls_public" = "Poll";
 "lng_polls_anonymous_quiz" = "Anonymous Quiz";
 "lng_polls_public_quiz" = "Quiz";

@@ -1158,8 +1158,8 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
 
     const auto createPollAnswers = [=] {
         std::vector<TextWithEntities> fixed_answers;
-        fixed_answers.push_back(TextWithEntities{ "Interested", EntitiesInText() });
-        fixed_answers.push_back(TextWithEntities{ "Not interested", EntitiesInText() });
+        fixed_answers.push_back(TextWithEntities{ "Yes", EntitiesInText() });
+        fixed_answers.push_back(TextWithEntities{ "No", EntitiesInText() });
 
         auto poll_ans_vec_final = std::vector<PollAnswer>();
         poll_ans_vec_final.reserve(fixed_answers.size());
