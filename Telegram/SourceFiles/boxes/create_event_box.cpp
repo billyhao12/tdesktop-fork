@@ -1116,30 +1116,30 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
 	Ui::AddSkip(container);
 
 	// Heading and input box for date
-//	Ui::AddSubsectionTitle(container, tr::lng_events_create_date());
-//	auto event_date = container->add(
-//		object_ptr<Ui::InputField>(
-//			container,
-//			st::createPollField,
-//			Ui::InputField::Mode::SingleLine,
-//			tr::lng_events_create_date_placeholder()),
-//		st::createPollFieldPadding
-//	);
-//
-//	Ui::AddSkip(container);
+	Ui::AddSubsectionTitle(container, tr::lng_events_create_date());
+	auto event_date = container->add(
+		object_ptr<Ui::InputField>(
+			container,
+			st::createPollField,
+			Ui::InputField::Mode::SingleLine,
+			tr::lng_events_create_date_placeholder()),
+		st::createPollFieldPadding
+	);
 
-//	// Heading and input box for time
-//	Ui::AddSubsectionTitle(container, tr::lng_events_create_time());
-//	auto event_time = container->add(
-//		object_ptr<Ui::InputField>(
-//			container,
-//			st::createPollField,
-//			Ui::InputField::Mode::SingleLine,
-//			tr::lng_events_create_time_placeholder()),
-//		st::createPollFieldPadding
-//	);
-//
-//	Ui::AddSkip(container);
+	Ui::AddSkip(container);
+
+	// Heading and input box for time
+	Ui::AddSubsectionTitle(container, tr::lng_events_create_time());
+	auto event_time = container->add(
+		object_ptr<Ui::InputField>(
+			container,
+			st::createPollField,
+			Ui::InputField::Mode::SingleLine,
+			tr::lng_events_create_time_placeholder()),
+		st::createPollFieldPadding
+	);
+
+	Ui::AddSkip(container);
 
 	// Heading and input box for event description
 	Ui::AddSubsectionTitle(container, tr::lng_events_create_description());
@@ -1184,6 +1184,10 @@ object_ptr<Ui::RpWidget> CreateEventBox::setupContent() {
         result.question.text = event_name->getTextWithTags().text;
         result.question.text += ": "; // Add a space separator
         result.question.text += event_description->getTextWithTags().text;
+        result.question.text += "\n";
+        result.question.text += "Date: " + event_date->getTextWithTags().text;
+        result.question.text += "\n";
+        result.question.text += "Time: " + event_time->getTextWithTags().text;
 
         result.question.entities = TextUtilities::ConvertTextTagsToEntities(
                 event_name->getTextWithTags().tags);
